@@ -9,10 +9,24 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6" x-data="runPrompt()">
 
-                <!-- Üst prompt textarea -->
-                <textarea x-model="promptText" rows="4" 
-                    class="w-full border-gray-300 rounded-lg p-3 mb-4"
-                    placeholder="Prompt buraya gelecek..."></textarea>
+                <!-- Prompt seçimi -->
+                <div class="mb-4">
+                    <label class="block mb-1 font-semibold">Prompt Seç:</label>
+                    <select x-model="promptId" class="w-full border-gray-300 rounded-lg p-2">
+                        <option value="">Bir prompt seçin...</option>
+                        @foreach($prompts as $prompt)
+                            <option value="{{ $prompt->id }}">{{ $prompt->title }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Prompt şablonunu göster -->
+                <template x-if="promptId">
+                    <div class="mb-4 p-2 bg-gray-50 rounded border text-sm">
+                        <span class="font-semibold">Şablon:</span>
+                        <span x-text="getPromptTemplate()"></span>
+                    </div>
+                </template>
 
                 <div class="flex space-x-4">
                     <!-- Veri girişi textboxu -->
@@ -23,7 +37,7 @@
 
                         <button @click="run()" 
                             class="mt-2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg"
-                            :disabled="loading"
+                            :disabled="loading || !promptId"
                             x-text="loading ? 'Çalışıyor...' : 'Çalıştır'">
                         </button>
                     </div>
@@ -44,12 +58,23 @@
     <script>
         function runPrompt() {
             return {
-                promptText: '', 
+                promptId: '',
                 input: '',
                 output: '',
                 loading: false,
+                prompts: @json($prompts->mapWithKeys(fn($p) => [$p->id => $p])->toArray()),
+
+                getPromptTemplate() {
+                    return this.promptId && this.prompts[this.promptId]
+                        ? this.prompts[this.promptId].template
+                        : '';
+                },
 
                 async run() {
+                    if (!this.promptId) {
+                        this.output = 'Lütfen bir prompt seçin.';
+                        return;
+                    }
                     this.loading = true;
                     this.output = 'İşleniyor...';
 
@@ -61,7 +86,7 @@
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                             },
                             body: JSON.stringify({
-                                prompt: this.promptText,
+                                prompt_id: this.promptId,
                                 input: this.input
                             })
                         });

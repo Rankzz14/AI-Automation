@@ -13,9 +13,10 @@ class RunController extends Controller
 {
     public function index()
     {
-        $prompts = Prompt::all(); // Tüm promptları al
-        return view('run', compact('prompts')); // run.blade.php’yi aç
+        $prompts = Prompt::all();
+        return view('run', compact('prompts'));
     }
+
     public function run(Request $req)
     {
         $req->validate([
@@ -47,7 +48,6 @@ class RunController extends Controller
             }
         });
 
-        // Kuyruğa at
         RunPromptJob::dispatch($run);
 
         return response()->json([
@@ -55,9 +55,13 @@ class RunController extends Controller
             'status' => 'queued'
         ]);
     }
+
     public function show($id)
     {
         $run = Run::findOrFail($id);
-        return response()->json($run);
+        return response()->json([
+            'status' => $run->status,
+            'output_text' => $run->output_text
+        ]);
     }
 }
